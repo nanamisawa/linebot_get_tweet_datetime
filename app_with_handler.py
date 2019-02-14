@@ -28,16 +28,52 @@ from linebot.models import (
 )
 
 import app
+#######################
+#added by minegishi
+from urllib.request import urlopen
+from bs4 import BeautifulSoup
+import time
+import datetime
+import threading
 
-import add
+
+def get_tweet_num():
+    with open("acount.text","r") as f:
+        acount = f.read()
+    html = urlopen("https://twitter.com/{}?lang=ja".format(acount))
+    bsObj = BeautifulSoup(html,"lxml")
+    text = bsObj.find("span",{"class","ProfileNav-value"})
+    return text.attrs['data-count']
+
+
+def get_tweet_time():
+    with open("tweet_count.text","w") as f:
+        f.write("なし\n")
+    while True:
+        tweet_num = get_tweet_num()
+        time.sleep(10)
+        print("[Twitter]",tweet_num,get_tweet_num())
+        if tweet_num == get_tweet_num():
+            print('[Twitter] 変化なし\n')
+        else:
+            with open("tweet_count.text","a") as f:
+                now = str(datetime.datetime.now()) + "\n"
+                f.write(now)
+
+
+thread_1 = threading.Thread(target=get_tweet_time)
+thread_1.start()
+#################
+#################
+
 
 app = Flask(__name__)
 
 # get channel_secret and channel_access_token from your environment variable
-#channel_secret = '88438434ba1bbc7aef07e8bb2e00d35a'
-#channel_access_token = 'dh0DO2bdCS7lRjAdUB7Lf9djYmssHEJJnHGsYr9mDBHnDf6RAskSE4qIYPMJmTIUt3j8tAhcUdwbU1Ci1+JY2vX9PiMYHaZroBkMz4ZSx87qGUSbFy7ekW01cBNAZfDLC+7s/+w+Kxvc4QwMddAqrQdB04t89/1O/w1cDnyilFU='
-channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
-channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
+#channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
+#channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
+channel_secret = '0f86b69f0a800dd187cc698c1405a6be'
+channel_access_token = 'Yd3v4gGnu6m7E/xYVP5fedy23cGyRtZinOipora4+qpOROaZJMAHQTzQB1jP/V0miUFHuolbxZ8LX3UNY+c5XJpX382kEQEdSHSojK8/u/tbzChaCVujPBPUyt0Eq+S1ox6F9oW2obixnetWDbTydwdB04t89/1O/w1cDnyilFU='
 if channel_secret is None:
     print('Specify LINE_CHANNEL_SECRET as environment variable.')
     sys.exit(1)
@@ -70,34 +106,32 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def message_text(event):
-    #if uid=="":
-    #    print(none)
-    #    line_bot_api.reply_message(
-    #        event.reply_token,
-    #        TextSendMessage(text="Plz specify the account ID ")
-    #        
-    #    )
-#misawa
+
+
+    text = ""
+    with open("tweet_count.text","r") as f:
+        text = f.read()
+    
     if "@" in event.message.text:
         #uid(global) update
-        uid=event.message.text
-        print(uid)
+        text=event.message.text
+        acount = text.replace("@","")
+        with open("acount.text","w") as f:
+            f.write(acount)
+
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text=uid+" を追加しました。 ")
+            TextSendMessage(text=acount+" を追加しました。 ")
         )
+
     else:
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text=add.get_tweet_num())
-        #TextSendMessage(text=event.message.text)
-    )
-#misawa
+            TextSendMessage(text = text )
+        )
 
 
 if __name__ == "__main__":
-    #misawa
-    uid=""
     arg_parser = ArgumentParser(
         usage='Usage: python ' + __file__ + ' [--port <port>] [--help]'
     )
